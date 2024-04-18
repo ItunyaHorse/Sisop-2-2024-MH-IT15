@@ -37,9 +37,9 @@ void replace_strings(char *file_path, char *log_path) {
     char line[MAX_LOG_LENGTH];
     char *filename = strrchr(file_path, '/');
 if (filename != NULL) {
-    filename++; // Move past the '/'
+    filename++;
 } else {
-    filename = file_path; // If no '/' is found, use the entire path as filename
+    filename = file_path;
 }
 
     long current_pos;
