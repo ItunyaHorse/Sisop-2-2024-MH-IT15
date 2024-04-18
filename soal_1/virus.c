@@ -16,7 +16,6 @@ void write_to_log(char *log_path, char *message) {
         printf("Error opening log file!\n");
         return;
     }
-
     time_t rawtime;
     struct tm *timeinfo;
     time(&rawtime);
@@ -34,14 +33,12 @@ void replace_strings(char *file_path, char *log_path) {
         printf("Error opening file: %s\n", file_path);
         return;
     }
-
     char line[MAX_LOG_LENGTH];
     long current_pos;
     long prev_pos = 0;
     while (fgets(line, sizeof(line), file)) {
         current_pos = ftell(file);
 
-        // Iterate through each character in the line
         for (int i = 0; line[i] != '\0'; ++i) {
             if (strncmp(&line[i], "m4LwAr3", 7) == 0) {
                 fseek(file, prev_pos + i, SEEK_SET);
@@ -62,11 +59,8 @@ void replace_strings(char *file_path, char *log_path) {
                 write_to_log(log_path, "Suspicious string [R4nS0mWaR3] successfully replaced in file.");
             }
         }
-
-        // Update the position of the previous line
         prev_pos = current_pos;
     }
-
     fclose(file);
 }
 
@@ -78,7 +72,6 @@ void run_daemon(char *folder_path, char *log_path) {
             while ((ent = readdir(dir)) != NULL) {
                 char file_path[MAX_PATH_LENGTH];
                 snprintf(file_path, MAX_PATH_LENGTH, "%s/%s", folder_path, ent->d_name);
-                // Skip directories and current/parent directory
                 if (ent->d_type == DT_DIR || strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
                     continue;
                 replace_strings(file_path, log_path);
@@ -96,11 +89,9 @@ int main(int argc, char *argv[]) {
         printf("Usage: %s /path/to/folder\n", argv[0]);
         return 1;
     }
-
     char *folder_path = argv[1];
     char log_path[MAX_PATH_LENGTH];
     snprintf(log_path, MAX_PATH_LENGTH, "%s/virus.log", folder_path);
-
     run_daemon(folder_path, log_path);
     return 0;
 }
