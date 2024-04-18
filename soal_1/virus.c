@@ -10,12 +10,13 @@
 #define MAX_FILENAME_LENGTH 256
 #define MAX_LOG_LENGTH 512
 
-void write_to_log(char *log_path, char *message) {
+void write_to_log(char *log_path, char *message, char *filename) {
     FILE *log_file = fopen(log_path, "a");
     if (log_file == NULL) {
         printf("Error opening log file!\n");
         return;
     }
+
     time_t rawtime;
     struct tm *timeinfo;
     time(&rawtime);
@@ -23,7 +24,7 @@ void write_to_log(char *log_path, char *message) {
     char timestamp[MAX_LOG_LENGTH];
     strftime(timestamp, MAX_LOG_LENGTH, "[%d-%m-%Y][%H:%M:%S]", timeinfo);
 
-    fprintf(log_file, "%s %s\n", timestamp, message);
+    fprintf(log_file, "%s %s at %s successfully replaced!\n", timestamp, message, filename);
     fclose(log_file);
 }
 
@@ -34,6 +35,13 @@ void replace_strings(char *file_path, char *log_path) {
         return;
     }
     char line[MAX_LOG_LENGTH];
+    char *filename = strrchr(file_path, '/');
+if (filename != NULL) {
+    filename++; // Move past the '/'
+} else {
+    filename = file_path; // If no '/' is found, use the entire path as filename
+}
+
     long current_pos;
     long prev_pos = 0;
     while (fgets(line, sizeof(line), file)) {
@@ -44,23 +52,24 @@ void replace_strings(char *file_path, char *log_path) {
                 fseek(file, prev_pos + i, SEEK_SET);
                 fputs("[MALWARE]", file); // Replace the string
                 printf("Suspicious string at %s successfully replaced!\n", file_path);
-                write_to_log(log_path, "Suspicious string [m4LwAr3] successfully replaced in file.");
+                write_to_log(log_path, "Suspicious string", filename);
             }
             if (strncmp(&line[i], "5pYw4R3", 7) == 0) {
                 fseek(file, prev_pos + i, SEEK_SET);
                 fputs("[SPYWARE]", file); // Replace the string
                 printf("Suspicious string at %s successfully replaced!\n", file_path);
-                write_to_log(log_path, "Suspicious string [5pYw4R3] successfully replaced in file.");
+                write_to_log(log_path, "Suspicious string", filename);
             }
             if (strncmp(&line[i], "R4nS0mWaR3", 10) == 0) {
                 fseek(file, prev_pos + i, SEEK_SET);
                 fputs("[RANSOMWARE]", file); // Replace the string
                 printf("Suspicious string at %s successfully replaced!\n", file_path);
-                write_to_log(log_path, "Suspicious string [R4nS0mWaR3] successfully replaced in file.");
+                write_to_log(log_path, "Suspicious string", filename);
             }
         }
         prev_pos = current_pos;
     }
+
     fclose(file);
 }
 
@@ -80,7 +89,7 @@ void run_daemon(char *folder_path, char *log_path) {
         } else {
             printf("Error opening directory: %s\n", folder_path);
         }
-        sleep(15); // Jeda 15 detik
+        sleep(15);
     }
 }
 
@@ -89,9 +98,11 @@ int main(int argc, char *argv[]) {
         printf("Usage: %s /path/to/folder\n", argv[0]);
         return 1;
     }
+
     char *folder_path = argv[1];
     char log_path[MAX_PATH_LENGTH];
     snprintf(log_path, MAX_PATH_LENGTH, "%s/virus.log", folder_path);
+
     run_daemon(folder_path, log_path);
     return 0;
 }
