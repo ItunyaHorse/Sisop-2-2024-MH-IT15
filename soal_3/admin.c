@@ -10,60 +10,49 @@
 #include <time.h>
 
 void checkadmin(char *username) {
-  strcat(username, ".log");
-  char *argv[] = {"list", username, NULL};
-  execv("/bin/cat", argv);
+    int sementara[2];
+    pid_t pid;
+    pipe(sementara);
+    pid = fork();
+    if (pid == 0) { 
+        close(sementara[0]);
+        dup2(sementara[1], STDOUT_FILENO);
+        close(sementara[1]);
+        execlp("ps", "ps", "-aux", NULL);
+    } else {
+        close(sementara[1]);
+        dup2(sementara[0], STDIN_FILENO);
+        close(sementara[0]);
+        execlp("grep", "grep", username, NULL);
+    }
+  
 }
 
 void mulai(char *nama){
-  strcat(nama, ".log");
-  char args[]= {"ps -eo pid,lstart,cmd | awk /mken/\'{print \"[\"$3\"-\"$4 \"-2024\"  \"]-[\" $5 \"]-\" $1 \"-\" $7}\' > %s", &*nama};
-  execlp("sh", "sh", "-c", args, NULL);
-}
-
-void daemonstart(){
-  pid_t pid, sid;        // Variabel untuk menyimpan PID
-
-  pid = fork();     // Menyimpan PID dari Child Process
-
-  /* Keluar saat fork gagal
-  * (nilai variabel pid < 0) */
-  if (pid < 0) {
-    exit(EXIT_FAILURE);
+  char logfile[100];
+  FILE *file_ptr;
+  sprintf(logfile, "%s.log", nama);
+  file_ptr = fopen(logfile, "w");
+ //ps -eo pid,lstart,cmd | awk /mken/\'{print \"[\"$3\"-\"$4 \"-2024\"  \"]-[\" $5 \"]-\" $1 \"-\" $7}\'"
+  while (1) {
+    int bentar[2];
+    pid_t pid;
+    pipe(bentar);
+    pid = fork();
+    if (pid == 0) { 
+        close(bentar[0]);
+        dup2(bentar[1], STDOUT_FILENO);
+        close(bentar[1]);
+        execlp("ps", "ps", "-eo", "pid,lstart,cmd", NULL);
+    } else {
+        close(bentar[1]);
+        dup2(bentar[0], STDIN_FILENO);
+        close(bentar[0]);
+        execlp("awk", "awk", "{print \"[\"$3\"-\"$4 \"-2024\"  \"]-[\" $5 \"]-\" $1 \"-\" $7}", NULL);
+    }
+  sleep(30);
   }
-
-  /* Keluar saat fork berhasil
-  * (nilai variabel pid adalah PID dari child process) */
-  if (pid > 0) {
-    exit(EXIT_SUCCESS);
-  }
-
-  umask(0);
-
-  sid = setsid();
-  if (sid < 0) {
-    exit(EXIT_FAILURE);
-  }
-
-  if ((chdir("/")) < 0) {
-    exit(EXIT_FAILURE);
-  }
-
-  close(STDIN_FILENO);
-  close(STDOUT_FILENO);
-  close(STDERR_FILENO);
 }
-
-void stop(){
-    char *argv[] = {"cp", "-9", NULL};
-    execv("/bin/kill", argv);
-}
-
-void kill(){
-    char *argv[] = {"killing", "-9", (int)getpid ,NULL};
-    execv("/bin/kill", argv);
-}
-
 
 int main(int argc, char *argv[]) {
 
@@ -71,7 +60,11 @@ int main(int argc, char *argv[]) {
     char *user = argv[2];
 
     if (strcmp(argv[1], "-m") == 0) {
-        mulai(user);
+        pid_t pid = fork();
+        if (pid == 0) {
+            mulai(user);
+            exit(0);
+        }
     } 
     else if (strcmp(argv[1], "-c") == 0) {
         system("echo -c");
