@@ -75,7 +75,6 @@ void openApplications(Application apps[], int numApps) {
 }
 
 void closeApplications() {
-    // Implement logic to close applications here
     printf("Closing applications...\n");
 }
 
