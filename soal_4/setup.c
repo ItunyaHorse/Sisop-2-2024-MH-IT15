@@ -17,20 +17,16 @@ void closeApplications();
 void parseConfigFile(const char *filename);
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        printf("Usage: %s -o <app1> <num1> <app2> <num2> ... OR %s -f <filename> OR %s -k OR %s -k <filename>\n", argv[0], argv[0], argv[0], argv[0]);
-        return 1;
-    }
 
     if (strcmp(argv[1], "-o") == 0) {
         if (argc % 2 != 0 || argc > (MAX_APPS * 2 + 2)) {
             printf("Invalid number of arguments\n");
             return 1;
         }
-
+        
         Application apps[MAX_APPS];
         int numApps = (argc - 2) / 2;
-
+        
         for (int i = 0; i < numApps; i++) {
             strcpy(apps[i].name, argv[i * 2 + 2]);
             apps[i].numWindows = atoi(argv[i * 2 + 3]);
