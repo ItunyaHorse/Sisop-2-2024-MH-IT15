@@ -8,6 +8,7 @@
 #include <syslog.h>
 #include <string.h>
 #include <time.h>
+#include <signal.h>
 
 void daemoner(){
     pid_t pid, sid;
@@ -66,7 +67,7 @@ void mulai(char *nama, int status){
 char logfile[100];
 FILE *file_ptr;
 sprintf(logfile, "%s.log", nama);
-file_ptr = fopen(logfile, "a");
+file_ptr = fopen(logfile, "w");
   if (status == 0){
     int normal[2];
     pid_t pid;
@@ -161,6 +162,14 @@ int main(int argc, char *argv[]) {
     char *username = argv[1];
     char *user = argv[2];
     int status;
+    
+    struct stat buffer;
+    if (stat("state.txt", &buffer) == 0) {
+        ;
+    } else {
+        FILE *state_file = fopen("state.txt", "w");
+    }
+
     FILE *state_file = fopen("state.txt", "r");
     fscanf(state_file, "%d", &status);
 
@@ -171,12 +180,11 @@ int main(int argc, char *argv[]) {
       daemoner();
       while(1){
         mulai(user, status);
-        sleep(60);
+        sleep(5);
       }
     } 
     else if (strcmp(argv[1], "-a") == 0) {
       hilanggagal("state.txt");
-
     } 
     else if (strcmp(argv[1], "-s") == 0) {
       pembunuh();
@@ -184,4 +192,5 @@ int main(int argc, char *argv[]) {
     else {
         checkadmin(username);
     }
+    return 0;
 }
