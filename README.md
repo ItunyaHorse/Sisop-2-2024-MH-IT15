@@ -545,6 +545,9 @@ void log_action(char *username, char *filename, char *action) {
 
 ![image](https://drive.google.com/uc?export=view&id=1YnoEQSLrElbGiNxoLt13MFIniU3M1dyK)
 
+**KENDALA**
+link yang tidak bisa di download sehingga menyebabkan step selanjutnya berhenti atau tidak jalan. lalu program tidak berjalan secara daemon
+
 ## Soal no 3
 Dikerjakan oleh **Michael Kenneth Salim (5027231008)**
 
