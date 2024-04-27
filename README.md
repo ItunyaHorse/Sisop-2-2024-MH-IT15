@@ -366,5 +366,12 @@ Masalah yang ditemukan :
 1. Daemon tidak dapat dijalankan
 2. Tidak bisa menunjukkan proses dari user spesifik
 
+Foto daemon tidak berjalan :
+
+
+Revisi dari asisten penguji :
+1. Daemon perlu diperbaiki
+2. Fungsi mulai perlu diperbaiki agar daemon bisa berjalan
+
 ## Soal no 4
 Dikerjakan oleh **Nicholas Emanuel Fade (5027231070)**
