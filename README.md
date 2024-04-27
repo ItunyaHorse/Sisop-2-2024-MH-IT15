@@ -774,6 +774,7 @@ Masalah yang ditemukan :
 2. Tidak bisa menunjukkan proses dari user spesifik
 
 Foto daemon tidak berjalan :
+
 ![IMG-20240427-WA0015](https://github.com/ItunyaHorse/Sisop-2-2024-MH-IT15/assets/145765887/33ccb35a-7cf0-4123-9093-78bbf17701f9)
 
 
