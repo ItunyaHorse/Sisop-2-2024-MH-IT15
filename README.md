@@ -882,9 +882,9 @@ void parseConfigFile(const char *filename) {
 }
 ```
 
-kode untuk menutup aplikasinya belum ada
-kode untuk membuka aplikasi lewat configfile masih belum bisa
-kodenya belum run secara daemon
+- kode untuk menutup aplikasinya belum ada
+- kode untuk membuka aplikasi lewat configfile masih belum bisa
+- kodenya belum run secara daemon
 
 output command manual:
 
