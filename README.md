@@ -774,3 +774,5 @@ Revisi dari asisten penguji :
 
 ## Soal no 4
 Dikerjakan oleh **Nicholas Emanuel Fade (5027231070)**
+
+![image](https://drive.google.com/uc?export=view&id=15LU-k5fE_q4Nit3_9P0HtJ3C5Ri7BN11)
