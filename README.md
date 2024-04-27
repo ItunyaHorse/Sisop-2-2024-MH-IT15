@@ -539,11 +539,11 @@ void log_action(char *username, char *filename, char *action) {
 
 **HASIL**
 
-![image](https://drive.google.com/file/d/1bNatp_pGeDNyxbeofX3tcxC5sqpoexLy/view?usp=sharing)
+![image](https://drive.google.com/uc?export=view&id=1bNatp_pGeDNyxbeofX3tcxC5sqpoexLy)
 
-![image](https://drive.google.com/file/d/1Rqln1iame4Aq6vDDinue7X3RprjRisgK/view?usp=sharing)
+![image](https://drive.google.com/uc?export=view&id=1Rqln1iame4Aq6vDDinue7X3RprjRisgK)
 
-![image](https://drive.google.com/file/d/1YnoEQSLrElbGiNxoLt13MFIniU3M1dyK/view?usp=sharing))
+![image](https://drive.google.com/uc?export=view&id=1YnoEQSLrElbGiNxoLt13MFIniU3M1dyK)
 
 ## Soal no 3
 Dikerjakan oleh **Michael Kenneth Salim (5027231008)**
