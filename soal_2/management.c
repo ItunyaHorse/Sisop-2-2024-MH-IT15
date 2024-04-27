@@ -13,18 +13,18 @@
 
 #define MAX_FILENAME_LENGTH 256
 #define HISTORY_LOG "history.log"
-#define BACKUP_FOLDER "backup"
+#define BACKUP_FOLDER "library/backup"
 #define MAX_PATH_LENGTH 100
 
 char *mode = "default";
+char *filename = NULL;
 
 void handle_signal(int signal);
-void download_and_unzip();
-void decrypt_filenames();
-void rename_files();
-void delete_file(const char *filename);
-void move_to_backup(const char *filename);
-void restore_from_backup(const char *filename);
+void decrypt();
+void Rename();
+void delete(char *filename);
+void backup(char *filename);
+void restore(char *filename);
 void log_action(char *username, char *filename, char *action);
 
 char *get_username() {
@@ -37,7 +37,6 @@ char *get_username() {
 }
 
 int main(int argc, char *argv[]) {
-    char *filename;
     if (argc > 1) {
         if (strcmp(argv[1], "-m") == 0 && argc > 2) {
             if (strcmp(argv[2], "default") == 0) {
@@ -55,9 +54,23 @@ int main(int argc, char *argv[]) {
     signal(SIGUSR2, handle_signal);
 
     pid_t pid, sid;
+    int status;
     pid = fork();
     if (pid < 0) {
         perror("fork");
+        exit(EXIT_FAILURE);
+    }
+    if (pid == 0) {
+        execlp("wget", "wget", "https://drive.google.com/file/d/1rUIZmp10lXLtCIH3LAZJzRPeRks3Crup/view?usp=sharing", "-O", "library.zip", NULL);
+        perror("exec wget");
+        exit(EXIT_FAILURE);
+    }
+    wait(&status);
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        execlp("unzip", "unzip", "library.zip", NULL);
+        perror("exec unzip");
+        exit(EXIT_FAILURE);
+    } else {
         exit(EXIT_FAILURE);
     }
     if (pid > 0) {
@@ -76,20 +89,18 @@ int main(int argc, char *argv[]) {
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-
-    while (1) {
+    while(1){
         if (strcmp(mode, "default") == 0) {
-            download_and_unzip();
-            decrypt_filenames();
-            rename_files();
+            decrypt();
+            Rename();
         } else if (strcmp(mode, "backup") == 0) {
-            move_to_backup(filename);
+            backup(filename);
         } else if (strcmp(mode, "restore") == 0) {
-            restore_from_backup(filename);
+            restore(filename);
         }
         sleep(1);
-    }
     exit(EXIT_SUCCESS);
+    }
 }
 
 void handle_signal(int signal) {
@@ -102,31 +113,8 @@ void handle_signal(int signal) {
     }
 }
 
-void download_and_unzip() {
-    pid_t child_pid;
-    int status;
-    child_pid = fork();
 
-    if (child_pid == 0) {
-        execlp("wget", "wget", "https://drive.google.com/file/d/1rUIZmp10lXLtCIH3LAZJzRPeRks3Crup/view?usp=sharing", "-O", "library.zip", NULL);
-        perror("exec wget");
-        exit(EXIT_FAILURE);
-    } else if (child_pid < 0) {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
-
-    wait(&status);
-    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-        execlp("unzip", "unzip", "library.zip", NULL);
-        perror("exec unzip");
-        exit(EXIT_FAILURE);
-    } else {
-        exit(EXIT_FAILURE);
-    }
-}
-
-void decrypt_filenames() {
+void decrypt() {
     DIR *dir;
     struct dirent *entry;
 
@@ -154,7 +142,7 @@ void decrypt_filenames() {
     closedir(dir);
 }
 
-void rename_files() {
+void Rename() {
     DIR *dir;
     struct dirent *entry;
 
@@ -171,7 +159,7 @@ void rename_files() {
             char *old_name = entry->d_name;
             char *new_name;
             if (strstr(old_name, "d3Let3") != NULL) {
-                delete_file(old_name);
+                delete(old_name);
             } else if (strstr(old_name, "r3N4mE") != NULL) {
                 if (strcmp(old_name + strlen(old_name) - 3, ".ts") == 0) {
                     new_name = "helper.ts";
@@ -195,14 +183,14 @@ void rename_files() {
     closedir(dir);
 }
 
-void delete_file(const char *filename) {
+void delete(char *filename) {
     if (remove(filename) != 0) {
         perror("Delete failed");
         exit(EXIT_FAILURE);
     }
 }
 
-void move_to_backup(const char *filename) {
+void backup(char *filename) {
     char new_path[MAX_PATH_LENGTH];
     snprintf(new_path, sizeof(new_path), "%s/%s", BACKUP_FOLDER, filename);
     if (rename(filename, new_path) != 0) {
@@ -211,7 +199,7 @@ void move_to_backup(const char *filename) {
     }
 }
 
-void restore_from_backup(const char *filename) {
+void restore(char *filename) {
     char new_path[MAX_PATH_LENGTH];
     snprintf(new_path, sizeof(new_path), "%s/%s", BACKUP_FOLDER, filename);
     if (rename(new_path, filename) != 0) {
@@ -238,3 +226,5 @@ void log_action(char *username, char *filename, char *action) {
     fprintf(log_file, "[%s][%s] - %s - %s\n", username, timestamp_2, filename, action);
     fclose(log_file);
 }
+
+//@Hsy
