@@ -145,6 +145,405 @@ contoh file setelah virus.c di run:
 
 ## Soal no 2
 Dikerjakan oleh **Veri Rahman (5027231088)**
+Pada soal nomor 2 ini, kita diminta untuk membuat sebuah program management.c yang program tersebut berjalan secara daemon kemudian dapat mengunduh file pada link yang ada untuk di unzip, setelah itu isi file tersebut di decrypt agar menampilkan nama file yang sebenarnya kemudian di ubah sesuai perintah yang ada. program ini juga dapat mebackup dan merestore file dalam bentuk mode dan bisa mengganti mode tanpa mengehentikannya terlebih dahulu, lalu program ini juga memiliki fungsi agar dapat mematikan program dengan aman. semua ini tercatat dalam history.log agar memudahkan pengguna.
+
+```bash
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <string.h>
+#include <signal.h>
+#include <dirent.h>
+#include <time.h>
+#include <pwd.h>
+
+#define MAX_FILENAME_LENGTH 256
+#define HISTORY_LOG "history.log"
+#define BACKUP_FOLDER "library/backup"
+#define MAX_PATH_LENGTH 100
+
+char *mode = "default";
+char *filename = NULL;
+
+void handle_signal(int signal);
+void decrypt();
+void Rename();
+void delete(char *filename);
+void backup(char *filename);
+void restore(char *filename);
+void log_action(char *username, char *filename, char *action);
+
+char *get_username() {
+    uid_t uid = geteuid();
+    struct passwd *pw = getpwuid(uid);
+    if (pw) {
+        return pw->pw_name;
+    }
+    return "unknown";
+}
+
+int main(int argc, char *argv[]) {
+    if (argc > 1) {
+        if (strcmp(argv[1], "-m") == 0 && argc > 2) {
+            if (strcmp(argv[2], "default") == 0) {
+                mode = "default";
+            } else if (strcmp(argv[2], "backup") == 0) {
+                mode = "backup";
+            } else if (strcmp(argv[2], "restore") == 0) {
+                mode = "restore";
+            }
+        }
+    }
+
+    signal(SIGRTMIN, handle_signal);
+    signal(SIGUSR1, handle_signal);
+    signal(SIGUSR2, handle_signal);
+
+    pid_t pid, sid;
+    int status;
+    pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+    if (pid == 0) {
+        execlp("wget", "wget", "https://drive.google.com/file/d/1rUIZmp10lXLtCIH3LAZJzRPeRks3Crup/view?usp=sharing", "-O", "library.zip", NULL);
+        perror("exec wget");
+        exit(EXIT_FAILURE);
+    }
+    wait(&status);
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        execlp("unzip", "unzip", "library.zip", NULL);
+        perror("exec unzip");
+        exit(EXIT_FAILURE);
+    } else {
+        exit(EXIT_FAILURE);
+    }
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);
+    }
+    umask(0);
+    sid = setsid();
+    if (sid < 0) {
+        perror("setsid");
+        exit(EXIT_FAILURE);
+    }
+    if ((chdir("/")) < 0) {
+        perror("chdir");
+        exit(EXIT_FAILURE);
+    }
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
+    while(1){
+        if (strcmp(mode, "default") == 0) {
+            decrypt();
+            Rename();
+        } else if (strcmp(mode, "backup") == 0) {
+            backup(filename);
+        } else if (strcmp(mode, "restore") == 0) {
+            restore(filename);
+        }
+        sleep(1);
+    exit(EXIT_SUCCESS);
+    }
+}
+
+void handle_signal(int signal) {
+    if (signal == SIGRTMIN) {
+        mode = "default";
+    } else if (signal == SIGUSR1) {
+        mode = "backup";
+    } else if (signal == SIGUSR2) {
+        mode = "restore";
+    }
+}
+
+
+void decrypt() {
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir(".");
+    if (dir == NULL) {
+        perror("Unable to open directory");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_REG) {
+            char *filename = entry->d_name;
+            int i = 0;
+            while (filename[i] != '\0') {
+                if ((filename[i] >= 'a' && filename[i] <= 'z')) {
+                    filename[i] = (((filename[i] - 'a') + 19) % 26) + 'a';
+                } else if ((filename[i] >= 'A' && filename[i] <= 'Z')) {
+                    filename[i] = (((filename[i] - 'A') + 19) % 26) + 'A';
+                }
+                i++;
+            }
+        }
+    }
+
+    closedir(dir);
+}
+void Rename() {
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir(".");
+    if (dir == NULL) {
+        perror("Unable to open directory");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_REG) {
+            char filename[MAX_FILENAME_LENGTH];
+            strcpy(filename, entry->d_name);
+            char *old_name = entry->d_name;
+            char *new_name;
+            if (strstr(old_name, "d3Let3") != NULL) {
+                delete(old_name);
+            } else if (strstr(old_name, "r3N4mE") != NULL) {
+                if (strcmp(old_name + strlen(old_name) - 3, ".ts") == 0) {
+                    new_name = "helper.ts";
+                } else if (strcmp(old_name + strlen(old_name) - 3, ".py") == 0) {
+                    new_name = "calculator.py";
+                } else if (strcmp(old_name + strlen(old_name) - 3, ".go") == 0) {
+                    new_name = "server.go";
+                } else {
+                    new_name = "renamed.file";
+                }
+
+                if (rename(old_name, new_name) != 0) {
+                    perror("Error renaming file");
+                } else {
+                    log_action(get_username(), old_name, "Successfully renamed");
+                }
+            }
+        }
+    }
+
+    closedir(dir);
+}
+void delete(char *filename) {
+    if (remove(filename) != 0) {
+        perror("Delete failed");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void backup(char *filename) {
+    char new_path[MAX_PATH_LENGTH];
+    snprintf(new_path, sizeof(new_path), "%s/%s", BACKUP_FOLDER, filename);
+    if (rename(filename, new_path) != 0) {
+        perror("Move to backup failed");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void restore(char *filename) {
+    char new_path[MAX_PATH_LENGTH];
+    snprintf(new_path, sizeof(new_path), "%s/%s", BACKUP_FOLDER, filename);
+    if (rename(new_path, filename) != 0) {
+        perror("Restore from backup failed");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void log_action(char *username, char *filename, char *action) {
+    FILE *log_file = fopen(HISTORY_LOG, "a");
+    if (log_file == NULL) {
+        perror("Failed to open history log file");
+        exit(EXIT_FAILURE);
+    }
+
+    time_t now;
+    struct tm *timestamp;
+    time(&now);
+    timestamp = localtime(&now);
+    char timestamp_2[9];
+
+    strftime(timestamp_2, sizeof(timestamp_2), "%H:%M:%S", timestamp);
+
+    fprintf(log_file, "[%s][%s] - %s - %s\n", username, timestamp_2, filename, action);
+    fclose(log_file);
+}
+
+//@Hsy
+```
+**Penjelasan**
+```bash
+pid_t pid, sid;
+    int status;
+    pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+    if (pid == 0) {
+        execlp("wget", "wget", "https://drive.google.com/file/d/1rUIZmp10lXLtCIH3LAZJzRPeRks3Crup/view?usp=sharing", "-O", "library.zip", NULL);
+        perror("exec wget");
+        exit(EXIT_FAILURE);
+    }
+    wait(&status);
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        execlp("unzip", "unzip", "library.zip", NULL);
+        perror("exec unzip");
+        exit(EXIT_FAILURE);
+    } else {
+        exit(EXIT_FAILURE);
+    }
+```
+**A** Berfungsi untuk mendownload dan men unzip file dari link yang disedikan. kita menggunakan "execlp()" untuk menjalankan perintah wget untuk mengunduh file dari URL yang ditentukan. Jika execlp() gagal, pesan kesalahan akan dicetak dan child process akan keluar dengan kode kesalahan EXIT_FAILURE. Lalu, "wait(&status)" adalah Proses parent menunggu child process selesai. Fungsi wait() akan menghentikan eksekusi parent process sampai child process selesai dieksekusi. "if (WIFEXITED(status) && WEXITSTATUS(status) == 0)" Setelah child process selesai dieksekusi, parent process memeriksa status keluaran child process. Jika child process berakhir secara normal dan keluar dengan status 0, maka parent process akan menjalankan execlp() untuk mengekstraksi file zip menggunakan perintah unzip. Jika tidak, parent process akan keluar dengan kode kesalahan EXIT_FAILURE.
+
+```bash
+void decrypt() {
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir(".");
+    if (dir == NULL) {
+        perror("Unable to open directory");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_REG) {
+            char *filename = entry->d_name;
+            int i = 0;
+            while (filename[i] != '\0') {
+                if ((filename[i] >= 'a' && filename[i] <= 'z')) {
+                    filename[i] = (((filename[i] - 'a') + 19) % 26) + 'a';
+                } else if ((filename[i] >= 'A' && filename[i] <= 'Z')) {
+                    filename[i] = (((filename[i] - 'A') + 19) % 26) + 'A';
+                }
+                i++;
+            }
+        }
+    }
+
+    closedir(dir);
+}
+```
+**B** Fungsi decrypt() memiliki tujuan untuk mendekripsi nama file yang ada dalam sebuah direktori. Proses dekripsi dilakukan pada setiap karakter dalam nama file menggunakan algoritma ROT19. Karakter huruf kecil (a-z) dan huruf besar (A-Z) akan digeser ke posisi 19 karakter ke kanan dalam alfabet. Proses ini dilakukan dengan memodifikasi langsung nilai karakter dalam filename. Setelah proses dekripsi selesai, pointer entry dipindahkan ke entri file berikutnya dalam direktori. Setelah seluruh entri file dalam direktori diproses, direktori ditutup dengan memanggil fungsi closedir(dir) untuk membebaskan sumber daya yang digunakan.
+
+```bash
+void Rename() {
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir(".");
+    if (dir == NULL) {
+        perror("Unable to open directory");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_REG) {
+            char filename[MAX_FILENAME_LENGTH];
+            strcpy(filename, entry->d_name);
+            char *old_name = entry->d_name;
+            char *new_name;
+            if (strstr(old_name, "d3Let3") != NULL) {
+                delete(old_name);
+            } else if (strstr(old_name, "r3N4mE") != NULL) {
+                if (strcmp(old_name + strlen(old_name) - 3, ".ts") == 0) {
+                    new_name = "helper.ts";
+                } else if (strcmp(old_name + strlen(old_name) - 3, ".py") == 0) {
+                    new_name = "calculator.py";
+                } else if (strcmp(old_name + strlen(old_name) - 3, ".go") == 0) {
+                    new_name = "server.go";
+                } else {
+                    new_name = "renamed.file";
+                }
+
+                if (rename(old_name, new_name) != 0) {
+                    perror("Error renaming file");
+                } else {
+                    log_action(get_username(), old_name, "Successfully renamed");
+                }
+            }
+        }
+    }
+
+    closedir(dir);
+}
+```
+**C** Fungsi Rename() bertujuan untuk melakukan operasi renaming terhadap file-file yang ada dalam sebuah direktori. Proses pemilihan nama baru dilakukan berdasarkan kondisi yang ditentukan. Jika nama file mengandung substring "d3Let3", maka file tersebut akan dihapus dengan memanggil fungsi delete(old_name). Jika nama file mengandung substring "r3N4mE", maka nama baru akan ditentukan berdasarkan ekstensi file. Jika ekstensinya adalah ".ts", ".py", atau ".go", nama baru akan ditetapkan sesuai dengan jenis file tersebut. Jika ekstensinya tidak dikenali, maka nama baru akan diset menjadi "renamed.file". Setelah nama baru ditetapkan, fungsi rename() akan dipanggil untuk melakukan operasi renaming dari old_name menjadi new_name. Jika operasi renaming gagal, pesan kesalahan akan dicetak menggunakan perror(). Jika berhasil, fungsi log_action() akan dipanggil untuk mencatat kegiatan renaming tersebut. Setelah seluruh entri file dalam direktori diproses, direktori ditutup dengan memanggil fungsi closedir(dir) untuk membebaskan sumber daya yang digunakan.
+
+```bash
+void backup(char *filename) {
+    char new_path[MAX_PATH_LENGTH];
+    snprintf(new_path, sizeof(new_path), "%s/%s", BACKUP_FOLDER, filename);
+    if (rename(filename, new_path) != 0) {
+        perror("Move to backup failed");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void restore(char *filename) {
+    char new_path[MAX_PATH_LENGTH];
+    snprintf(new_path, sizeof(new_path), "%s/%s", BACKUP_FOLDER, filename);
+    if (rename(new_path, filename) != 0) {
+        perror("Restore from backup failed");
+        exit(EXIT_FAILURE);
+    }
+}
+```
+**D** Fungsi backup() dan restore() berfungsi untuk melakukan operasi backup dan restore terhadap file pada direktori yang ada. Variabel "new_path" digunakan untuk menyimpan path baru untuk file yang akan dibackup. Fungsi "snprintf()" digunakan untuk mengonversi BACKUP_FOLDER dan filename menjadi string yang merupakan path lengkap menuju file yang akan dibackup. snprintf() digunakan untuk memastikan bahwa buffer new_path tidak melebihi ukuran maksimum yang telah ditentukan (MAX_PATH_LENGTH).
+"if (rename(filename, new_path) != 0)" dipanggil untuk memindahkan (rename) file yang diberikan dari path semula ke new_path. Jika operasi rename gagal (nilai kembalian tidak sama dengan 0), maka pesan kesalahan akan dicetak menggunakan perror() dan program akan keluar dengan kode kesalahan EXIT_FAILURE.
+Variabel "new_path" digunakan untuk menyimpan path baru untuk file yang akan direstore dari backup. Fungsi "snprintf()" digunakan untuk mengonversi BACKUP_FOLDER dan filename menjadi string yang merupakan path lengkap menuju file yang akan direstore dari backup. "if (rename(new_path, filename) != 0)" dipanggil untuk memindahkan (rename) file dari path backup (new_path) kembali ke path semula (filename). Jika operasi rename gagal (nilai kembalian tidak sama dengan 0), maka pesan kesalahan akan dicetak menggunakan perror() dan program akan keluar dengan kode kesalahan EXIT_FAILURE.
+
+```bash
+void handle_signal(int signal) {
+    if (signal == SIGRTMIN) {
+        mode = "default";
+    } else if (signal == SIGUSR1) {
+        mode = "backup";
+    } else if (signal == SIGUSR2) {
+        mode = "restore";
+    }
+}
+```
+**E** Fungsi handle_signal adalah penangan sinyal yang bertanggung jawab untuk mengubah mode kerja program. "SIGRTMIN" digunakan untuk mengubah mode program menjadi mode default. Ketika sinyal ini diterima, variabel mode akan diubah menjadi string "default". "SIGUSR1" digunakan untuk mengubah mode program menjadi mode backup. Ketika sinyal ini diterima, variabel mode akan diubah menjadi string "backup". "SIGUSR2" digunakan untuk mengubah mode program menjadi mode restore. Ketika sinyal ini diterima, variabel mode akan diubah menjadi string "restore".
+
+```bash
+void log_action(char *username, char *filename, char *action) {
+    FILE *log_file = fopen(HISTORY_LOG, "a");
+    if (log_file == NULL) {
+        perror("Failed to open history log file");
+        exit(EXIT_FAILURE);
+    }
+
+    time_t now;
+    struct tm *timestamp;
+    time(&now);
+    timestamp = localtime(&now);
+    char timestamp_2[9];
+
+    strftime(timestamp_2, sizeof(timestamp_2), "%H:%M:%S", timestamp);
+
+    fprintf(log_file, "[%s][%s] - %s - %s\n", username, timestamp_2, filename, action);
+    fclose(log_file);
+}
+```
+**F** Fungsi log_action bertanggung jawab untuk mencatat suatu tindakan (action) yang dilakukan pada file ke dalam sebuah file log. "FILE *log_file = fopen(HISTORY_LOG, "a")" Fungsi fopen() digunakan untuk membuka file log dengan mode "a" (append), yang berarti data akan ditambahkan ke akhir file tanpa menghapus konten yang sudah ada sebelumnya. Jika file tidak dapat dibuka, maka akan dicetak pesan kesalahan menggunakan perror() dan program akan keluar dengan kode kesalahan EXIT_FAILURE.
+"time_t now; struct tm *timestamp; time(&now); timestamp = localtime(&now)" Variabel now digunakan untuk menyimpan waktu saat ini dalam bentuk Unix timestamp. Fungsi time() digunakan untuk mendapatkan waktu saat ini. Selanjutnya, waktu saat ini diubah menjadi waktu lokal menggunakan fungsi localtime() dan disimpan dalam variabel timestamp.
+"char timestamp_2[9]; strftime(timestamp_2, sizeof(timestamp_2), "%H:%M:%S", timestamp)" Waktu yang telah diubah menjadi waktu lokal kemudian diformat sesuai dengan format yang diinginkan (HH:MM:SS) menggunakan fungsi strftime(). Hasil format disimpan dalam variabel timestamp_2. "fprintf(log_file, "[%s][%s] - %s - %s\n", username, timestamp_2, filename, action)" Menggunakan fprintf(), tindakan (action) yang terjadi pada file direkam ke dalam file log. Format yang digunakan adalah "[username][timestamp] - filename - action\n". Data yang direkam mencakup username, timestamp (dalam format HH:MM:SS), nama file, dan tindakan yang dilakukan. "fclose(log_file)" Setelah selesai menulis ke file log, file ditutup menggunakan fclose() untuk memastikan data tertulis ke dalam file.
+
+**HASIL**
+
+![image](https://drive.google.com/file/d/1bNatp_pGeDNyxbeofX3tcxC5sqpoexLy/view?usp=sharing)
+
+![image](https://drive.google.com/file/d/1Rqln1iame4Aq6vDDinue7X3RprjRisgK/view?usp=sharing)
+
+![image](https://drive.google.com/file/d/1YnoEQSLrElbGiNxoLt13MFIniU3M1dyK/view?usp=sharing))
 
 ## Soal no 3
 Dikerjakan oleh **Michael Kenneth Salim (5027231008)**
